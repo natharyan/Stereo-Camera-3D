@@ -14,12 +14,12 @@ objp[:,:2] = np.mgrid[0:10,0:7].T.reshape(-1,2)
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-img_list = os.listdir('datasets/Camera Calibration(Samsung S20 fe)')
+img_list = os.listdir('datasets/Camera Calibration(Samsung M02)')
 img_list = [i for i in img_list if i.endswith('.jpg')]
-img_list.remove('20241116_210603.jpg')
+# img_list.remove('20241116_210603.jpg')
 for fname in img_list:
     print(fname)
-    img = cv.imread('datasets/Camera Calibration(Samsung S20 fe)/' + fname,cv.COLOR_BGR2GRAY)
+    img = cv.imread('datasets/Camera Calibration(Samsung M02)/' + fname,cv.COLOR_BGR2GRAY)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
  
     # Find the chess board corners
@@ -44,17 +44,17 @@ cv.destroyAllWindows()
 
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
-np.savez('aryan_calibration_data.npz', mtx=mtx, dist=dist)
+np.savez('intrinsics/shreyansh_calibration_data.npz', mtx=mtx, dist=dist)
 
 # distortion correction
-img = cv.imread('datasets/Camera Calibration(Samsung S20 fe)/20241116_210603.jpg')
-h,  w = img.shape[:2]
-newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
-# undistort
-dst = cv.undistort(img, mtx, dist, None, newcameramtx)
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
+# img = cv.imread('datasets/Camera Calibration(Samsung S20 fe)/20241116_210603.jpg')
+# h,  w = img.shape[:2]
+# newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+# # undistort
+# dst = cv.undistort(img, mtx, dist, None, newcameramtx)
+# x, y, w, h = roi
+# dst = dst[y:y+h, x:x+w]
 
-cv.imwrite('calibresult.png', dst)
+# cv.imwrite('calibresult.png', dst)
 
 #TODO: change opencv code parts
