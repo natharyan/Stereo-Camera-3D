@@ -1,60 +1,52 @@
 import numpy as np
 import cv2 as cv
 import os
-import glob
- 
-# termination criteria
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
- 
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((10*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:10,0:7].T.reshape(-1,2)
- 
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
 
-img_list = os.listdir('datasets/Camera Calibration(Samsung M02)')
-img_list = [i for i in img_list if i.endswith('.jpg')]
-# img_list.remove('20241116_210603.jpg')
-for fname in img_list:
-    print(fname)
-    img = cv.imread('datasets/Camera Calibration(Samsung M02)/' + fname,cv.COLOR_BGR2GRAY)
-    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
- 
-    # Find the chess board corners
-    ret, corners = cv.findChessboardCorners(gray, (10,7), None)
- 
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
- 
-        corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
-        imgpoints.append(corners2)
- 
-        # Draw and display the corners
-        print('imgpoints:', imgpoints)
-        cv.drawChessboardCorners(img, (10,7), corners2, ret)
-        cv.imshow('img', img)
+# Define termination criteria for corner refinement
+termination_criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+# Generate a grid of 3D object points for the chessboard pattern
+grid_points = np.zeros((10 * 7, 3), np.float32)
+grid_points[:, :2] = np.mgrid[0:10, 0:7].T.reshape(-1, 2)
+
+real_world_points = []  # 3D points in the real world
+image_points = []       # 2D points in image plane
+
+image_dir = 'datasets/Camera Calibration(Samsung S20 fe)'
+image_files = [f for f in os.listdir(image_dir) if f.endswith('.jpg')]
+
+for image_file in image_files:
+    image_path = os.path.join(image_dir, image_file)
+    image = cv.imread(image_path)
+    grayscale_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+
+    # Detect chessboard corners in the grayscale image
+    found, corners = cv.findChessboardCorners(grayscale_image, (10, 7), None)
+
+    if found:
+        real_world_points.append(grid_points)
+        refined_corners = cv.cornerSubPix(grayscale_image, corners, (11, 11), (-1, -1), termination_criteria)
+        image_points.append(refined_corners)
+
+        cv.drawChessboardCorners(image, (10, 7), refined_corners, found)
+        cv.imshow('Detected Corners', image)
         cv.waitKey(500)
     else:
-        print("no img points found")
- 
+        print(f"Corners not detected in {image_file}")
+
 cv.destroyAllWindows()
 
-ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+calibration_success, camera_matrix, distortion_coeffs, rotation_vecs, translation_vecs = cv.calibrateCamera(
+    real_world_points, image_points, grayscale_image.shape[::-1], None, None
+)
 
-np.savez('intrinsics/shreyansh_calibration_data.npz', mtx=mtx, dist=dist)
+np.savez('intrinsics/aryan_calibration_data.npz', mtx=camera_matrix, dist=distortion_coeffs)
 
-# distortion correction
-# img = cv.imread('datasets/Camera Calibration(Samsung S20 fe)/20241116_210603.jpg')
-# h,  w = img.shape[:2]
-# newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
-# # undistort
-# dst = cv.undistort(img, mtx, dist, None, newcameramtx)
-# x, y, w, h = roi
-# dst = dst[y:y+h, x:x+w]
-
-# cv.imwrite('calibresult.png', dst)
-
-#TODO: change opencv code parts
+# distortion_correction_example = 'datasets/Camera Calibration(Samsung S20 fe)/20241116_210603.jpg'
+# img = cv.imread(distortion_correction_example)
+# h, w = img.shape[:2]
+# optimal_matrix, valid_roi = cv.getOptimalNewCameraMatrix(camera_matrix, distortion_coeffs, (w, h), 1, (w, h))
+# corrected_image = cv.undistort(img, camera_matrix, distortion_coeffs, None, optimal_matrix)
+# x, y, w, h = valid_roi
+# corrected_image = corrected_image[y:y+h, x:x+w]
+# cv.imwrite('calibration_result.png', corrected_image)
